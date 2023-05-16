@@ -1,0 +1,30 @@
+// Binance Smart Chain contract
+pragma solidity ^0.8.0;
+
+interface IArbitrumBridge {
+    function deposit(address _l2Token, uint256 _amount) external;
+    function withdraw(address _l2Token, uint256 _amount) external;
+}
+
+contract CrossChainBridge {
+    IArbitrumBridge public immutable arbitrumBridge;
+    address public immutable l1Token;
+    address public immutable l2Token;
+
+    constructor(address _arbitrumBridge, address _l1Token, address _l2Token) {
+        arbitrumBridge = IArbitrumBridge(_arbitrumBridge);
+        l1Token = _l1Token;
+        l2Token = _l2Token;
+    }
+
+    function deposit(uint256 _amount) external {
+        require(IBEP20(l1Token).transferFrom(msg.sender, address(this), _amount), "Transfer failed");
+        require(IBEP20(l1Token).approve(address(arbitrumBridge), _amount), "Approval failed");
+        arbitrumBridge.deposit(l2Token, _amount);
+    }
+
+    function withdraw(uint256 _amount) external {
+        arbitrumBridge.withdraw(l2Token, _amount);
+        require(IBEP20(l1Token).transfer(msg.sender, _amount), "Transfer failed");
+    }
+}
